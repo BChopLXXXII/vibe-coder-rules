@@ -1,0 +1,85 @@
+# .cursorrules — Python Template
+# For Python projects (FastAPI, Flask, scripts, etc.)
+# Lines: ~60
+
+# ============================================
+# PROJECT
+# ============================================
+
+This is a Python project using:
+- Python 3.11+
+- [Framework: FastAPI/Flask/Django/None]
+- [Package manager: pip/poetry/uv]
+- [Add other tools: pytest, ruff, black, etc.]
+
+# ============================================
+# CODE STYLE
+# ============================================
+
+Formatting:
+- 4 spaces for indentation
+- Max line length: 88 characters (black default)
+- Use type hints everywhere
+- Docstrings for functions and classes
+
+Example:
+```python
+def calculate_total(items: list[Item], tax_rate: float = 0.1) -> float:
+    """Calculate total price including tax.
+    
+    Args:
+        items: List of items to sum
+        tax_rate: Tax percentage (default 10%)
+    
+    Returns:
+        Total price with tax applied
+    """
+    subtotal = sum(item.price for item in items)
+    return subtotal * (1 + tax_rate)
+```
+
+# ============================================
+# PROJECT STRUCTURE
+# ============================================
+
+```
+src/
+├── api/              # Route handlers
+├── models/           # Data models (Pydantic/SQLAlchemy)
+├── services/         # Business logic
+├── utils/            # Helper functions
+└── config.py         # Configuration
+tests/
+├── test_api.py
+└── test_services.py
+```
+
+# ============================================
+# PATTERNS
+# ============================================
+
+Error Handling:
+- Use try/except for operations that can fail
+- Create custom exceptions for domain errors
+- Log errors with context
+
+Async:
+- Use async/await for I/O operations
+- Don't block the event loop with sync code
+- Use httpx for async HTTP requests
+
+# ============================================
+# DO / DON'T
+# ============================================
+
+DO:
+- Add type hints to all functions
+- Write tests for new functionality
+- Use environment variables for secrets
+- Validate input data with Pydantic
+
+DON'T:
+- Use mutable default arguments
+- Catch bare `except:` without re-raising
+- Store secrets in code
+- Skip error handling

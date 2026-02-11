@@ -1,0 +1,86 @@
+# .cursorrules — Next.js Template
+# For Next.js 14+ projects with App Router
+# Lines: ~70
+
+# ============================================
+# PROJECT
+# ============================================
+
+This is a Next.js 14+ project using:
+- App Router (src/app/)
+- TypeScript (strict)
+- Tailwind CSS
+- [Add: Supabase/Prisma/etc if using]
+
+# ============================================
+# NEXT.JS RULES
+# ============================================
+
+Routing:
+- Use App Router, not Pages Router
+- page.tsx = route page
+- layout.tsx = shared layout
+- loading.tsx = loading state
+- error.tsx = error boundary
+
+Components:
+- Server Components by default (no directive needed)
+- Add 'use client' only when using: hooks, events, browser APIs
+- Never import server-only code into client components
+
+Data Fetching:
+- Fetch data in Server Components when possible
+- Use Server Actions for mutations
+- Revalidate with revalidatePath() after mutations
+
+# ============================================
+# CODE STYLE
+# ============================================
+
+Components:
+- One component per file
+- PascalCase names
+- Props interface above component
+- Export named functions, not default
+
+Example:
+```tsx
+interface CardProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+export function Card({ title, children }: CardProps) {
+  return (
+    <div className="rounded-lg border p-4">
+      <h2 className="font-bold">{title}</h2>
+      {children}
+    </div>
+  );
+}
+```
+
+# ============================================
+# TAILWIND
+# ============================================
+
+- Use Tailwind for all styling
+- Mobile-first (sm:, md:, lg: for larger screens)
+- Use cn() helper for conditional classes
+- Group related classes logically
+
+# ============================================
+# DO / DON'T
+# ============================================
+
+DO:
+- Use next/image for images
+- Use next/link for navigation
+- Handle loading and error states
+- Use TypeScript types everywhere
+
+DON'T:
+- Use <img> or <a> tags
+- Fetch data in client components unnecessarily
+- Ignore TypeScript errors
+- Mix server and client code incorrectly

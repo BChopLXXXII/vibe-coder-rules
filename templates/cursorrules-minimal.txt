@@ -1,0 +1,60 @@
+# .cursorrules — Minimal Template
+# Drop this in your project root. Cursor reads it automatically.
+# Lines: ~40
+
+# ============================================
+# PROJECT INFO
+# ============================================
+
+You are helping with [PROJECT NAME], a [brief description].
+Tech: [list your stack]
+
+# ============================================
+# HOW TO WRITE CODE
+# ============================================
+
+Style:
+- TypeScript with strict mode
+- Functional components (no classes)
+- Descriptive names (no single-letter variables)
+- Keep files under 200 lines
+
+Formatting:
+- 2 spaces for indentation
+- Single quotes for strings
+- No semicolons (or: always semicolons)
+- Trailing commas
+
+# ============================================
+# PROJECT STRUCTURE
+# ============================================
+
+Follow existing patterns. Check similar files before creating new ones.
+
+Key folders:
+- Components: src/components/
+- Pages: src/app/
+- Utilities: src/lib/
+- Types: src/types/
+
+# ============================================
+# RULES
+# ============================================
+
+DO:
+- Match existing code style
+- Add TypeScript types to everything
+- Write clear commit messages
+
+DON'T:
+- Create new patterns without asking
+- Install packages without asking
+- Refactor unrelated code
+
+# ============================================
+# WHEN STUCK
+# ============================================
+
+1. Read the error message carefully
+2. Check if similar code exists in the project
+3. Ask clarifying questions before guessing
