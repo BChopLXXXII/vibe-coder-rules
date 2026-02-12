@@ -91,12 +91,6 @@ If your CLAUDE.md is over 150 lines, you're probably overcomplicating it.
 
 ---
 
-## Contributing
-
-Found a pattern that works? Open a PR. Keep it under 100 lines.
-
----
-
 ## License
 
 MIT. Do whatever you want with these.

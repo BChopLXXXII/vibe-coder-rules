@@ -7,14 +7,14 @@
 
 Project: [YOUR PROJECT NAME]
 Description: [What does this app do?]
-Stack: Next.js 14+, React, TypeScript, Tailwind CSS
+Stack: Next.js 16+, React, TypeScript, Tailwind CSS
 Deployment: Vercel
 
 # ============================================
 # NEXT.JS SPECIFICS
 # ============================================
 
-## App Router (Next.js 14+)
+## App Router (Next.js 13+)
 - Use App Router (`src/app/`), not Pages Router
 - Server Components by default
 - Add `'use client'` only when needed (hooks, events, browser APIs)

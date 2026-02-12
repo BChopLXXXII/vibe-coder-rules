@@ -7,7 +7,7 @@
 
 Project: [YOUR APP NAME]
 Description: [What does this app do?]
-Frontend: Next.js 14+, React, TypeScript, Tailwind
+Frontend: Next.js 16+, React, TypeScript, Tailwind
 Backend: [Supabase / API Routes / Express]
 Database: [Supabase PostgreSQL / Other]
 Auth: [Supabase Auth / NextAuth / Clerk]

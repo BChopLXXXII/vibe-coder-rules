@@ -1,12 +1,12 @@
 # .cursorrules — Next.js Template
-# For Next.js 14+ projects with App Router
+# For Next.js 16+ projects with App Router
 # Lines: ~70
 
 # ============================================
 # PROJECT
 # ============================================
 
-This is a Next.js 14+ project using:
+This is a Next.js 16+ project using:
 - App Router (src/app/)
 - TypeScript (strict)
 - Tailwind CSS
