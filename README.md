@@ -91,6 +91,10 @@ If your CLAUDE.md is over 150 lines, you're probably overcomplicating it.
 
 ---
 
+## See Also
+
+**Want more comprehensive templates?** Check out [claude-md-templates](https://github.com/BChopLXXXII/claude-md-templates) — detailed CLAUDE.md files with full stack configs, patterns, and conventions.
+
 ## License
 
 MIT. Do whatever you want with these.
