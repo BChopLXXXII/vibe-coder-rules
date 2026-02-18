@@ -71,6 +71,12 @@ Other examples:
 
 The script is safe by default: it **won't overwrite** existing `CLAUDE.md` or `.cursorrules` files.
 
+If you intentionally want to replace an existing file, use:
+
+```bash
+./scripts/setup-rules.sh --tool claude --stack minimal --target ../my-project --force
+```
+
 ---
 
 ## Quick Start
