@@ -1,6 +1,6 @@
 # Vibe Coder Rules
 
-CLAUDE.md and .cursorrules templates for vibe coders.
+CLAUDE.md, .cursorrules, and .codex templates for vibe coders — plus **rule-sync** to keep them all in sync from one file.
 
 Simple. Commented. Under 100 lines. Actually useful.
 
@@ -76,6 +76,53 @@ If you intentionally want to replace an existing file, use:
 ```bash
 ./scripts/setup-rules.sh --tool claude --stack minimal --target ../my-project --force
 ```
+
+---
+
+## 🔄 rule-sync — One Config, Every Agent
+
+Tired of maintaining separate `CLAUDE.md`, `.cursorrules`, `.codex/instructions.md`, and `.windsurfrules` files? **rule-sync** lets you write your rules once and sync them everywhere.
+
+### How It Works
+
+1. **Initialize** a single `.ai-rules` source file:
+   ```bash
+   ./scripts/rule-sync.sh --init
+   ```
+
+2. **Edit** `.ai-rules` with your project's rules (it's a simple YAML-ish format)
+
+3. **Sync** to all your AI coding agents:
+   ```bash
+   ./scripts/rule-sync.sh --force
+   ```
+
+That's it. One file generates:
+- `CLAUDE.md` — Claude Code, OpenClaw
+- `.cursor/rules` — Cursor IDE
+- `.codex/instructions.md` — OpenAI Codex CLI
+- `.windsurfrules` — Windsurf IDE
+- `AGENTS.md` — GitHub Copilot Workspace
+
+### Options
+
+```bash
+# Sync only specific targets
+./scripts/rule-sync.sh --targets claude,cursor --force
+
+# Preview without writing
+./scripts/rule-sync.sh --dry-run
+
+# Watch for changes and auto-sync
+./scripts/rule-sync.sh --watch --force
+
+# Use a custom source file
+./scripts/rule-sync.sh --source my-rules.yml --force
+```
+
+### Why?
+
+People keep asking: *"How do I keep my Claude Code and Cursor configs in sync?"* Now you don't have to. Edit one file, run one command.
 
 ---
 
