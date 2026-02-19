@@ -52,10 +52,11 @@ error() { echo -e "${RED}✗${NC} $*" >&2; }
 dry()   { echo -e "${CYAN}[dry-run]${NC} $*"; }
 
 usage() {
+  local code="${1:-0}"
   sed -n '/^# Usage:/,/^$/p' "$0" | sed 's/^# \?//'
   echo ""
   sed -n '/^# Options:/,/^[^#]/p' "$0" | sed 's/^# \?//' | head -n -1
-  exit 0
+  exit "$code"
 }
 
 # Parse args
@@ -68,8 +69,8 @@ while [[ $# -gt 0 ]]; do
     --watch)   WATCH=true; shift ;;
     --force)   FORCE=true; shift ;;
     --init)    INIT=true; shift ;;
-    -h|--help) usage ;;
-    *) error "Unknown option: $1"; usage ;;
+    -h|--help) usage 0 ;;
+    *) error "Unknown option: $1"; usage 1 ;;
   esac
 done
 
@@ -153,9 +154,9 @@ parse_rules() {
   local file="$1"
   
   # Extract simple key: value pairs
-  PROJECT=$(grep '^project:' "$file" | sed 's/^project:\s*//' | head -1)
-  DESCRIPTION=$(grep '^description:' "$file" | sed 's/^description:\s*//' | head -1)
-  TECH_STACK=$(grep '^tech_stack:' "$file" | sed 's/^tech_stack:\s*//' | head -1)
+  PROJECT=$(grep '^project:' "$file" | sed 's/^project:\s*//' | head -1 || true)
+  DESCRIPTION=$(grep '^description:' "$file" | sed 's/^description:\s*//' | head -1 || true)
+  TECH_STACK=$(grep '^tech_stack:' "$file" | sed 's/^tech_stack:\s*//' | head -1 || true)
   
   # Extract list sections
   extract_list() {
