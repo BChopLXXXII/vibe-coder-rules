@@ -126,6 +126,25 @@ People keep asking: *"How do I keep my Claude Code and Cursor configs in sync?"*
 
 ---
 
+## 🧠 vibe-handoff — Keep Session Context Between Agents
+
+AI sessions forget. `vibe-handoff` creates a fast `HANDOFF.md` snapshot so your next agent run starts with context instead of guessing.
+
+```bash
+./tools/vibe-handoff.sh --print
+```
+
+What it captures:
+- current branch + last commit
+- current git status (including uncommitted changes)
+- recent commit history
+- key files in the repo
+- a structured handoff template (Goal / What changed / Next steps / Resume prompt)
+
+More usage examples: `docs/vibe-handoff.md`
+
+---
+
 ## Quick Start
 
 **For Claude Code / OpenClaw:**
