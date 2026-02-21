@@ -21,7 +21,7 @@ set -euo pipefail
 # ─── Config ──────────────────────────────────────────────────────────────────
 
 WORKTREE_DIR="${VIBE_WORKTREE_DIR:-.worktrees}"
-BASE_PORT="${VIBE_BASE_PORT:-3100}"  # port n+1 per worktree to avoid conflicts
+BASE_PORT="${VIBE_BASE_PORT:-3100}"  # lowest free port assigned per worktree; freed slots are recycled
 CLAUDE_CMD="${CLAUDE_CMD:-claude}"   # override if claude is aliased differently
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -295,7 +295,17 @@ cmd_launch() {
 
 cmd_clean_merged() {
   local main_branch
-  main_branch=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | awk '{print $NF}' || echo "main")
+  # Try remote HEAD first, then fall back to detecting local default branch
+  main_branch=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | awk '{print $NF}' || true)
+  if [[ -z "$main_branch" ]]; then
+    for candidate in main master trunk develop; do
+      if git show-ref --verify --quiet "refs/heads/$candidate"; then
+        main_branch="$candidate"
+        break
+      fi
+    done
+  fi
+  main_branch="${main_branch:-main}"
 
   bold "Cleaning merged worktree branches (merged to $main_branch)..."
   echo ""
@@ -306,7 +316,7 @@ cmd_clean_merged() {
     info "Removing merged: $branch ($name)"
     cmd_remove "$name"
     count=$((count + 1))
-  done < <(git branch --merged "$main_branch" | grep 'wt/' | tr -d ' ')
+  done < <(git branch --merged "$main_branch" | grep 'wt/' | sed 's/^[+* ]*//')
 
   if [[ "$count" -eq 0 ]]; then
     info "Nothing to clean — no merged wt/* branches found."
