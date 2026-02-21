@@ -145,6 +145,37 @@ More usage examples: `docs/vibe-handoff.md`
 
 ---
 
+## ⚡ vibe-worktree — Parallel Claude Code Sessions
+
+Run multiple Claude Code agents simultaneously, each isolated on its own branch. No context bleed, no port conflicts.
+
+```bash
+# Spin up 3 parallel Claude Code workspaces
+./tools/vibe-worktree.sh create feat-auth
+./tools/vibe-worktree.sh create feat-ui
+./tools/vibe-worktree.sh create feat-api
+
+# See all active sessions + ports
+./tools/vibe-worktree.sh list
+
+# Open Claude Code in one
+./tools/vibe-worktree.sh launch feat-auth
+
+# Clean up merged branches
+./tools/vibe-worktree.sh clean-merged
+```
+
+Each worktree gets:
+- A dedicated branch (`wt/feat-auth`)
+- A unique dev port in `.env.local` — no `EADDRINUSE`
+- A `WORKTREE.md` context file Claude reads for orientation
+
+Built for Claude Code 2.1.49+ (auto-uses native `--worktree` flag). Falls back gracefully for older versions.
+
+More: `docs/vibe-worktree.md`
+
+---
+
 ## Quick Start
 
 **For Claude Code / OpenClaw:**
