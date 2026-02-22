@@ -176,6 +176,43 @@ More: `docs/vibe-worktree.md`
 
 ---
 
+## 🛡️ openclaw guard — Staged Diff Risk Scanner
+
+Catch risky AI artifacts *before* commit.
+
+```bash
+./tools/openclaw-guard.sh
+```
+
+What v1 scans in `git diff --staged`:
+- ghost/hallucinated local imports (missing files)
+- secrets (keys/tokens/private key patterns)
+- TODO/FIXME/XXX/HACK bombs
+- unresolved/invented import symbols (best-effort static check)
+
+Output is colorized and returns non-zero on findings, so it works in pre-commit hooks and CI.
+
+More: `docs/openclaw-guard.md`
+
+---
+
+## 🧮 claw-context-audit — Context Waste Scanner
+
+Find where pre-task context gets burned, then auto-generate a compact run brief.
+
+```bash
+./tools/claw-context-audit.sh
+```
+
+Outputs:
+- `reports/context-audit.md` — token estimate per source + overlap/duplication findings
+- `reports/run-brief.md` — compressed high-signal context block
+
+Built for AGENTS.md/CLAUDE.md + docs sprawl pain.
+
+More: `docs/claw-context-audit.md`
+
+---
 ## Quick Start
 
 **For Claude Code / OpenClaw:**
