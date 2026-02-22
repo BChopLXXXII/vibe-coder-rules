@@ -173,6 +173,11 @@ for r in rows:
             or ("`" in s and ("./" in s or "openclaw " in s or "git " in s or "npm " in s))
         )
 
+        # drop orphan numbered fragments (e.g., "3. something") unless they are rule-like
+        orphan_numbered_fragment = bool(re.match(r"^\d+\.\s+", s)) and not (hard_rule or blocked_behavior or executable_cmd)
+        if orphan_numbered_fragment:
+            continue
+
         concise_bullet = s.startswith(("- ", "* ")) and len(s) <= 160 and (hard_rule or blocked_behavior or executable_cmd)
         heading = s.startswith("#") and not is_heading_only(s)
 
@@ -207,9 +212,39 @@ for c in candidates:
 selected = list(best.values())
 selected.sort(key=lambda x: (-x["priority"], x["path"], x["idx"]))
 
+# final cleanup for strict mode: strip list fragments unless clearly actionable commands/rules
+if mode == "strict":
+    cleaned = []
+    for c in selected:
+        s = c["line"].strip()
+        low = s.lower()
+        if re.match(r"^\d+\.\s+", s):
+            has_cmd = ("`" in s and ("./" in s or "npm " in s or "openclaw " in s or "git ")) or s.startswith(("./", "openclaw ", "git ", "$ "))
+            has_rule = bool(re.search(r"\b(must|required|always|never|do not|don't|refuse|enforce|forbidden|blocked)\b", low))
+            if not (has_cmd or has_rule):
+                continue
+        cleaned.append(c)
+    selected = cleaned
+
 max_lines = 45 if mode == "strict" else 60
 brief_lines = [c["line"] for c in selected[:max_lines]]
+
+if mode == "strict":
+    filtered_lines = []
+    for s in brief_lines:
+        low = s.lower().strip()
+        if re.match(r"^\d+\.\s+", s.strip()):
+            has_cmd = ("`" in s and ("./" in s or "npm " in s or "openclaw " in s or "git ")) or s.strip().startswith(("./", "openclaw ", "git ", "$ "))
+            has_rule = bool(re.search(r"\b(must|required|always|never|do not|don't|refuse|enforce|forbidden|blocked)\b", low))
+            if not (has_cmd or has_rule):
+                continue
+        filtered_lines.append(s)
+    brief_lines = filtered_lines
+
 brief_text = "\n".join(brief_lines)
+if mode == "strict":
+    # hard strip numbered list fragments in final text (often contextless markdown leftovers)
+    brief_text = "\n".join([ln for ln in brief_text.splitlines() if not re.match(r"^\s*\d+\.\s+", ln)])
 brief_tokens = est_tokens(brief_text)
 
 high_cost = [r for r in rows if r["tokens"] >= max(250, total_tokens * 0.15)]
