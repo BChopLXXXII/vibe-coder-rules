@@ -19,10 +19,17 @@ From repo root:
 ./tools/claw-context-audit.sh
 ```
 
+Strict mode (hard rules + commands only):
+
+```bash
+./tools/claw-context-audit.sh --strict
+```
+
 Audit another project path:
 
 ```bash
 ./tools/claw-context-audit.sh ../my-project
+./tools/claw-context-audit.sh --strict ../my-project
 ```
 
 ## Output

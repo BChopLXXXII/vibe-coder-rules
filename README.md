@@ -202,6 +202,7 @@ Find where pre-task context gets burned, then auto-generate a compact run brief.
 
 ```bash
 ./tools/claw-context-audit.sh
+./tools/claw-context-audit.sh --strict
 ```
 
 Outputs:

@@ -1,14 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="${1:-.}"
+MODE="balanced" # balanced|strict
+ROOT="."
+
+usage() {
+  cat <<'EOF'
+claw-context-audit
+
+Usage:
+  ./tools/claw-context-audit.sh [path] [--strict]
+  ./tools/claw-context-audit.sh --strict [path]
+
+Options:
+  --strict    Only keep hard rules + blocked behaviors + executable commands
+  -h, --help  Show help
+EOF
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --strict) MODE="strict" ;;
+    -h|--help) usage; exit 0 ;;
+    *) ROOT="$arg" ;;
+  esac
+done
+
 OUT_DIR="$ROOT/reports"
 AUDIT_OUT="$OUT_DIR/context-audit.md"
 BRIEF_OUT="$OUT_DIR/run-brief.md"
 
 mkdir -p "$OUT_DIR"
 
-python3 - "$ROOT" "$AUDIT_OUT" "$BRIEF_OUT" <<'PY'
+python3 - "$ROOT" "$AUDIT_OUT" "$BRIEF_OUT" "$MODE" <<'PY'
 import re, sys, math, hashlib
 from pathlib import Path
 from collections import Counter, defaultdict
@@ -16,6 +40,7 @@ from collections import Counter, defaultdict
 root = Path(sys.argv[1]).resolve()
 audit_out = Path(sys.argv[2]).resolve()
 brief_out = Path(sys.argv[3]).resolve()
+mode = sys.argv[4]
 
 patterns = [
     "AGENTS.md", "CLAUDE.md", ".cursorrules", ".windsurfrules", ".ai-rules",
@@ -53,7 +78,6 @@ def is_heading_only(line: str) -> bool:
     if not s.startswith("#"):
         return False
     text = re.sub(r"^#+\s*", "", s).strip().lower()
-    # generic doc headings that add little action signal
     generic = {
         "overview", "usage", "examples", "notes", "license", "about",
         "quick start", "options", "output", "requirements", "what it does",
@@ -68,35 +92,20 @@ def line_priority(line: str, path: str) -> int:
     low = s.lower()
     score = 0
 
-    # action-heavy starts
     if re.match(r"^(never|always|must|do not|don't|avoid|use|keep|ask|run|build|test|enforce|refuse|block|fail)\b", low):
         score += 5
-
-    # bullets and checklist lines
     if s.startswith(("- ", "* ")):
         score += 2
-
-    # command snippets (inline or direct)
     if ("`" in s and ("./" in s or "npm " in s or "openclaw " in s or "git " in s)) or s.startswith(("./", "openclaw ", "git ", "$ ")):
         score += 3
-
-    # policy/rule terms
     if any(w in low for w in ["rule", "guard", "lock", "approval", "security", "forbidden", "required", "must", "do not"]):
         score += 2
-
-    # architecture/constraints
     if any(w in low for w in ["framework", "styling", "state", "testing", "file structure"]):
         score += 1
-
-    # deprioritize heading-only lines
     if is_heading_only(s):
         score -= 4
-
-    # deprioritize marketing / promo copy
-    if any(w in low for w in ["star the repo", "made by", "ship it", "why this exists", "copy-paste ready", "beginner-friendly"]):
+    if any(w in low for w in ["star the repo", "made by", "ship it", "why this exists", "copy-paste ready", "beginner-friendly", "heavily commented"]):
         score -= 4
-
-    # avoid giant lines
     if len(s) > 180:
         score -= 2
 
@@ -145,7 +154,6 @@ for line, owners in shared:
 for r in rows:
     r["overlap_lines"] = overlap_count.get(r["path"], 0)
 
-# tighter run brief generation (hard mode): only hard rules + blocked behaviors + executable commands
 candidates = []
 for r in rows:
     path = r["path"]
@@ -155,7 +163,6 @@ for r in rows:
             continue
 
         low = s.lower()
-
         hard_rule = bool(re.search(r"\b(must|required|always|never|do not|don't|refuse|enforce|lock|blocked|forbidden)\b", low))
         blocked_behavior = bool(re.search(r"\b(do not|don't|refuse|blocked|forbidden|non[- ]negotiable)\b", low))
         executable_cmd = (
@@ -166,25 +173,31 @@ for r in rows:
             or ("`" in s and ("./" in s or "openclaw " in s or "git " in s or "npm " in s))
         )
 
-        # keep concise bullets carrying policy/commands
         concise_bullet = s.startswith(("- ", "* ")) and len(s) <= 160 and (hard_rule or blocked_behavior or executable_cmd)
+        heading = s.startswith("#") and not is_heading_only(s)
 
-        # extra noise guard
-        promo_noise = any(w in low for w in ["ship it", "star the repo", "made by", "why this exists", "copy-paste ready", "beginner-friendly", "heavily commented"]) 
+        promo_noise = any(w in low for w in ["ship it", "star the repo", "made by", "why this exists", "copy-paste ready", "beginner-friendly", "heavily commented"])
         if promo_noise:
             continue
 
-        if not (hard_rule or blocked_behavior or executable_cmd or concise_bullet):
+        if mode == "strict":
+            keep = hard_rule or blocked_behavior or executable_cmd or concise_bullet
+            min_score = 3
+        else:
+            imperative = bool(re.match(r"^(never|always|must|do not|don't|avoid|use|keep|ask|run|build|test|enforce|refuse|block|fail)\b", low))
+            short_bullet = s.startswith(("- ", "* ")) and len(s) <= 160
+            keep = hard_rule or blocked_behavior or executable_cmd or concise_bullet or imperative or short_bullet or heading
+            min_score = 1
+
+        if not keep:
             continue
 
         pri = line_priority(s, path)
-        # hard-mode minimum threshold
-        if pri < 3:
+        if pri < min_score:
             continue
 
         candidates.append({"line": s, "path": path, "priority": pri, "idx": idx})
 
-# dedupe with stronger normalization + keep highest-priority occurrence
 best = {}
 for c in candidates:
     k = hashlib.sha1(normalize_line(c["line"]).encode()).hexdigest()
@@ -194,7 +207,8 @@ for c in candidates:
 selected = list(best.values())
 selected.sort(key=lambda x: (-x["priority"], x["path"], x["idx"]))
 
-brief_lines = [c["line"] for c in selected[:45]]
+max_lines = 45 if mode == "strict" else 60
+brief_lines = [c["line"] for c in selected[:max_lines]]
 brief_text = "\n".join(brief_lines)
 brief_tokens = est_tokens(brief_text)
 
@@ -202,13 +216,12 @@ high_cost = [r for r in rows if r["tokens"] >= max(250, total_tokens * 0.15)]
 high_overlap = [r for r in rows if r["overlap_lines"] >= 20]
 low_signal = [r for r in rows if r["signal_ratio"] < 0.35 and r["tokens"] > 120]
 
-reduction_pct = 0
-if total_tokens > 0:
-    reduction_pct = round((1 - (brief_tokens / total_tokens)) * 100, 1)
+reduction_pct = round((1 - (brief_tokens / total_tokens)) * 100, 1) if total_tokens else 0
 
 md = []
 md.append("# Context Audit Report\n")
 md.append(f"- Root: `{root}`")
+md.append(f"- Mode: **{mode}**")
 md.append(f"- Files scanned: **{len(rows)}**")
 md.append(f"- Estimated pre-task context: **{total_tokens} tokens**")
 md.append(f"- Generated run brief: **{brief_tokens} tokens**")
@@ -254,6 +267,7 @@ brief.append("# Run Brief (Compressed)")
 brief.append("")
 brief.append("Use this as the high-signal context block before coding. Regenerate with `./tools/claw-context-audit.sh`.")
 brief.append("")
+brief.append(f"- Mode: **{mode}**")
 brief.append(f"- Source files: {len(rows)}")
 brief.append(f"- Estimated tokens: {brief_tokens} (down from ~{total_tokens}, -{reduction_pct}%)")
 brief.append("")
@@ -268,5 +282,6 @@ brief_out.write_text("\n".join(brief) + "\n", encoding="utf-8")
 
 print(f"Wrote {audit_out}")
 print(f"Wrote {brief_out}")
+print(f"Mode: {mode}")
 print(f"Estimated tokens: {total_tokens} -> {brief_tokens} (-{reduction_pct}%)")
 PY
