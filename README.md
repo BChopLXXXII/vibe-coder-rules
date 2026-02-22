@@ -176,6 +176,26 @@ More: `docs/vibe-worktree.md`
 
 ---
 
+## 🛡️ openclaw guard — Staged Diff Risk Scanner
+
+Catch risky AI artifacts *before* commit.
+
+```bash
+./tools/openclaw-guard.sh
+```
+
+What v1 scans in `git diff --staged`:
+- ghost/hallucinated local imports (missing files)
+- secrets (keys/tokens/private key patterns)
+- TODO/FIXME/XXX/HACK bombs
+- unresolved/invented import symbols (best-effort static check)
+
+Output is colorized and returns non-zero on findings, so it works in pre-commit hooks and CI.
+
+More: `docs/openclaw-guard.md`
+
+---
+
 ## Quick Start
 
 **For Claude Code / OpenClaw:**
