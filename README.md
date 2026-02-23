@@ -196,24 +196,6 @@ More: `docs/openclaw-guard.md`
 
 ---
 
-## 🧮 claw-context-audit — Context Waste Scanner
-
-Find where pre-task context gets burned, then auto-generate a compact run brief.
-
-```bash
-./tools/claw-context-audit.sh
-./tools/claw-context-audit.sh --strict
-```
-
-Outputs:
-- `reports/context-audit.md` — token estimate per source + overlap/duplication findings
-- `reports/run-brief.md` — compressed high-signal context block
-
-Built for AGENTS.md/CLAUDE.md + docs sprawl pain.
-
-More: `docs/claw-context-audit.md`
-
----
 ## Quick Start
 
 **For Claude Code / OpenClaw:**
