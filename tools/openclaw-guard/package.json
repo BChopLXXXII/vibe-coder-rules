@@ -1,0 +1,28 @@
+{
+  "name": "openclaw-guard",
+  "version": "1.0.0",
+  "description": "CLI guardrail that scans staged diffs for AI-code risks",
+  "main": "src/index.js",
+  "bin": {
+    "openclaw-guard": "./bin/openclaw-guard.js",
+    "oguard": "./bin/openclaw-guard.js"
+  },
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "lint": "echo 'No linter configured'"
+  },
+  "keywords": [
+    "git",
+    "guardrail",
+    "ai-code",
+    "security",
+    "cli",
+    "diff",
+    "pre-commit"
+  ],
+  "author": "@BChopLXXXII",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
