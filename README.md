@@ -178,19 +178,39 @@ More: `docs/vibe-worktree.md`
 
 ## 🛡️ openclaw guard — Staged Diff Risk Scanner
 
-Catch risky AI artifacts *before* commit.
+Catch risky AI artifacts *before* commit. Available as both a **bash script** (fast, zero deps) and a **Node.js CLI** (enhanced detection, colored reports).
+
+### Quick Start (Bash — zero deps)
 
 ```bash
 ./tools/openclaw-guard.sh
 ```
 
-What v1 scans in `git diff --staged`:
-- ghost/hallucinated local imports (missing files)
-- secrets (keys/tokens/private key patterns)
-- TODO/FIXME/XXX/HACK bombs
-- unresolved/invented import symbols (best-effort static check)
+### Enhanced CLI (Node.js)
 
-Output is colorized and returns non-zero on findings, so it works in pre-commit hooks and CI.
+```bash
+cd tools/openclaw-guard
+npm link        # or: npm install -g
+openclaw-guard  # scan staged changes
+```
+
+**CLI Options:**
+```bash
+openclaw-guard --json          # JSON output for CI/CD
+openclaw-guard --quiet         # Only output on findings
+openclaw-guard --fail-on-todo  # Treat TODOs as blocking errors
+```
+
+### What It Scans
+
+Both versions scan `git diff --staged` for:
+
+| Check | Severity | Description |
+|-------|----------|-------------|
+| **Secrets** | 🔴 ERROR | API keys, tokens, private keys, AWS/GitHub/Slack patterns |
+| **Ghost Imports** | 🟡 WARN | Imports pointing to non-existent files |
+| **TODO/FIXME** | 🟡 WARN (or 🔴) | Incomplete markers left by AI agents |
+| **Stub Functions** | 🟡 WARN | Placeholder implementations (`pass`, `// TODO`) |
 
 More: `docs/openclaw-guard.md`
 

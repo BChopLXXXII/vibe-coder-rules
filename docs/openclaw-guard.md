@@ -1,88 +1,141 @@
-# openclaw guard (v1)
+# openclaw-guard
 
-`openclaw-guard` is a local pre-commit guardrail for AI-generated code risks.
+CLI guardrail that scans staged git diffs for AI-code risks.
 
-It scans **staged changes only** (`git diff --staged`) and blocks commit (`exit 1`) when high-signal issues are found.
+## Quick Start
 
----
+```bash
+# From the vibe-coder-rules repo
+cd tools/openclaw-guard
 
-## What v1 checks
+# Link locally (or use directly)
+npm link
 
-1. **Ghost/hallucinated local imports**
-   - Flags `import`/`require` paths that point to missing local files.
-2. **Secrets patterns**
-   - Flags common API key/token/private key patterns in added lines.
-3. **TODO/FIXME bombs**
-   - Flags staged additions containing TODO/FIXME/XXX/HACK markers.
-4. **Invented/unresolved import symbols (best effort)**
-   - For named local imports (`import { A } from './x'`), checks if `A` appears exported in target module.
-   - Also flags unresolved stubs like `throw new Error("Not implemented")`, `@ts-ignore`, and `eslint-disable`.
-
-> v1 is intentionally conservative: reliable static checks over broad/fragile claims.
-
----
+# Run in any git repo with staged changes
+openclaw-guard
+```
 
 ## Usage
 
 ```bash
-./tools/openclaw-guard.sh
+openclaw-guard [options]
+
+Options:
+  --json          Output results as JSON
+  --quiet         Only output on findings (exit code still set)
+  --fail-on-todo  Treat TODO/FIXME as errors (default: warning)
+  -h, --help      Show help
 ```
 
-### Typical flow
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | No issues found |
+| `1` | Blocking issues found (secrets, ghost files with --strict, etc.) |
+| `2` | Scanner error or not a git repo |
+
+## What It Detects
+
+### Secrets (ERROR)
+- AWS Access Keys (AKIA...)
+- GitHub Tokens (ghp_, gho_, ghs_, etc.)
+- Slack Tokens (xoxb-, xoxp-)
+- Stripe Live Keys (sk_live_)
+- OpenAI API Keys (sk-...)
+- Private Keys (PEM format)
+- Generic high-entropy secrets
+
+### Ghost Files (WARN)
+- JavaScript/TypeScript imports of missing files
+- Python relative imports to non-existent modules
+- CSS/SCSS `@import` of missing files
+- Static asset references (images, fonts)
+
+### TODO/FIXME (WARN or ERROR)
+- `// TODO`, `# TODO` comments
+- `// FIXME`, `# FIXME` comments  
+- `STUB`, `PLACEHOLDER`, `XXX`, `HACK` markers
+- `pass` statements in Python stubs
+- `throw new Error('Not implemented')` in JS stubs
+
+### Unresolved Imports (WARN)
+- External dependencies without manifest entries
+- Stub function detection
+- Unresolved symbol usage
+
+## Git Hook Setup
+
+### Husky
 
 ```bash
-git add .
-./tools/openclaw-guard.sh
-# if pass:
-git commit -m "your message"
+npm install --save-dev husky
+npx husky init
+
+echo 'npx openclaw-guard' > .husky/pre-commit
 ```
 
-### Git hook (optional)
+### Manual
 
 ```bash
-cat > .git/hooks/pre-commit <<'HOOK'
-#!/usr/bin/env bash
-./tools/openclaw-guard.sh
-HOOK
+cat > .git/hooks/pre-commit << 'EOF'
+#!/bin/sh
+npx openclaw-guard --quiet || exit 1
+EOF
 chmod +x .git/hooks/pre-commit
 ```
 
----
+## CI/CD Integration
 
-## Example output
+### GitHub Actions
 
-### Pass
+```yaml
+name: Guard
+on: [push, pull_request]
 
-```text
-openclaw guard — staged diff scan
-
-✔ Guard passed: no risky patterns in staged diff.
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx openclaw-guard --fail-on-todo
 ```
 
-### Fail
+## Testing
 
-```text
-openclaw guard — staged diff scan
-
-[SECRETS]
-  - const API_KEY="sk-abc123..."
-
-[GHOST IMPORTS]
-  - src/app.ts: ./utils/missing-file
-
-[UNRESOLVED SYMBOLS/STUBS]
-  - src/app.ts: makeMoneyFast not exported by src/utils/helpers.ts
-
-✖ Guard failed: 3 finding(s). Fix before commit.
+```bash
+cd tools/openclaw-guard
+npm test
 ```
 
----
+## Architecture
 
-## Notes / limits (v1)
+```
+openclaw-guard/
+├── bin/openclaw-guard.js      # CLI entry point
+├── src/
+│   ├── guard-runner.js        # Main orchestrator
+│   ├── scan-results.js        # Results aggregation
+│   ├── formatters.js          # Terminal output
+│   └── scanners/
+│       ├── secret-scanner.js  # Detects secrets
+│       ├── ghost-file-scanner.js  # Detects missing imports
+│       ├── todo-scanner.js    # Detects TODO/FIXME
+│       └── import-scanner.js  # Detects stub/unresolved imports
+└── tests/
+    └── run-tests.js           # Test suite
+```
 
-- Symbol export detection is **best effort** for common JS/TS export patterns.
-- Import resolution is focused on local relative paths (`./` and `../`).
-- Secrets scan is regex-based, not entropy-based.
-- The script reads staged snapshots from git index where possible.
+## Why This Exists
 
-These tradeoffs keep v1 fast, dependency-free, and predictable.
+AI coding assistants sometimes:
+- Hallucinate file paths in imports
+- Leave TODOs as "temporary" fixes
+- Hardcode credentials for "testing"
+- Generate stub functions you forget to fill in
+
+This tool catches the obvious stuff before it hits your repo.
+
+## License
+
+MIT
