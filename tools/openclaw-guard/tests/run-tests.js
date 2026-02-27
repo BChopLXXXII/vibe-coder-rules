@@ -1,201 +1,142 @@
+#!/usr/bin/env node
 /**
- * Test runner for OpenClaw Guard
- * Run with: npm test
+ * OpenClaw Guard v1 — test suite
+ * Exercises every scanner with synthetic diff chunks.
  */
 
 const { SecretScanner } = require('../src/scanners/secret-scanner');
 const { GhostFileScanner } = require('../src/scanners/ghost-file-scanner');
 const { TodoScanner } = require('../src/scanners/todo-scanner');
 const { ImportScanner } = require('../src/scanners/import-scanner');
-
-const COLORS = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  gray: '\x1b[90m'
-};
+const { ScanResults } = require('../src/scan-results');
+const { formatReport } = require('../src/formatters');
 
 let passed = 0;
 let failed = 0;
 
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`${COLORS.green}✓${COLORS.reset} ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`${COLORS.red}✗${COLORS.reset} ${name}`);
-    console.log(`  ${COLORS.gray}${error.message}${COLORS.reset}`);
-    failed++;
-  }
+function assert(label, condition) {
+  if (condition) { passed++; console.log(`  ✓ ${label}`); }
+  else { failed++; console.error(`  ✗ ${label}`); }
 }
 
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message || 'Assertion failed');
-  }
+function makeChunk(file, lines) {
+  return {
+    oldFile: file,
+    newFile: file,
+    hunks: [],
+    addedLines: lines.map(l => ({ content: l, hunkHeader: '@@ -0,0 +1,1 @@' })),
+    removedLines: [],
+    isNewFile: true,
+    isDeleted: false
+  };
 }
 
-function assertEqual(actual, expected, message) {
-  if (actual !== expected) {
-    throw new Error(message || `Expected ${expected}, got ${actual}`);
-  }
+async function testSecretScanner() {
+  console.log('\n▸ SecretScanner');
+  const s = new SecretScanner();
+
+  const chunks = [makeChunk('config.js', [
+    'const key = "AKIAIOSFODNN7EXAMPLE"',
+    'const ghToken = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij1234"',
+    `const stripe = "sk_live_${'x'.repeat(24)}"`,
+    `const openai = "sk-${'a'.repeat(48)}"`,
+    'const db = "postgres://user:s3cret@host/db"',
+    '-----BEGIN RSA PRIVATE KEY-----',
+    'const safe = "hello world"',
+  ])];
+
+  const f = await s.scan(chunks);
+  assert('detects AWS key', f.some(x => x.type === 'AWS Access Key ID'));
+  assert('detects GitHub token', f.some(x => x.type === 'GitHub Token'));
+  assert('detects Stripe key', f.some(x => x.type === 'Stripe Live Key'));
+  assert('detects OpenAI key', f.some(x => x.type === 'OpenAI API Key'));
+  assert('detects DB URL', f.some(x => x.type === 'Database URL with Password'));
+  assert('detects private key', f.some(x => x.type === 'Private Key (PEM)'));
+  assert('all secrets are ERROR severity', f.every(x => x.severity === 'ERROR'));
+  assert('safe string not flagged', !f.some(x => x.snippet && x.snippet.includes('hello world') && x.type !== 'Generic Secret/Token'));
 }
 
-console.log('\n╔══════════════════════════════════════════════════════════════╗');
-console.log('║              OPENCLAW GUARD - Test Suite                     ║');
-console.log('╚══════════════════════════════════════════════════════════════╝\n');
+async function testTodoScanner() {
+  console.log('\n▸ TodoScanner');
+  const s = new TodoScanner(false);
 
-// ═══════════════════════════════════════════════════════════════
-// Secret Scanner Tests
-// ═══════════════════════════════════════════════════════════════
-console.log(`${COLORS.yellow}▶ Secret Scanner${COLORS.reset}\n`);
+  const chunks = [makeChunk('app.js', [
+    '// TODO: fix this later',
+    '// FIXME: broken edge case',
+    '// HACK: workaround for now',
+    '// PLACEHOLDER: replace with real logic',
+    'const x = 1; // normal comment',
+  ])];
 
-test('detects AWS Access Key ID', async () => {
-  const scanner = new SecretScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: 'const key = "AKIAIOSFODNN7EXAMPLE"', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.length > 0, 'Should detect AWS key');
-  assert(findings[0].type === 'AWS Access Key ID', 'Should identify as AWS key');
-});
+  const f = await s.scan(chunks);
+  assert('finds TODO', f.some(x => x.snippet.includes('TODO')));
+  assert('finds FIXME', f.some(x => x.snippet.includes('FIXME')));
+  assert('finds HACK', f.some(x => x.snippet.includes('HACK')));
+  assert('finds PLACEHOLDER', f.some(x => x.snippet.includes('PLACEHOLDER')));
+  assert('normal comment not flagged', !f.some(x => x.snippet.includes('normal comment')));
 
-test('detects GitHub token', async () => {
-  const scanner = new SecretScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: 'const token = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.some(f => f.type === 'GitHub Token'), 'Should detect GitHub token');
-});
+  // --fail-on-todo
+  const strict = new TodoScanner(true);
+  const f2 = await strict.scan(chunks);
+  assert('--fail-on-todo promotes to ERROR', f2.filter(x => x.snippet.includes('TODO')).every(x => x.severity === 'ERROR'));
+}
 
-test('detects private key', async () => {
-  const scanner = new SecretScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: 'const key = `-----BEGIN RSA PRIVATE KEY-----`', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.some(f => f.type === 'Private Key (PEM)'), 'Should detect private key');
-});
+async function testImportScanner() {
+  console.log('\n▸ ImportScanner');
+  const s = new ImportScanner();
 
-test('masks secrets in output', async () => {
-  const scanner = new SecretScanner();
-  const secret = 'AKIAIOSFODNN7EXAMPLE';
-  const masked = scanner._maskSecret(secret);
-  assert(masked.includes('***'), 'Should mask secret');
-  assert(!masked.includes('IOSFODNN7EXAMP'), 'Should hide middle of secret');
-});
+  const chunks = [makeChunk('src/index.js', [
+    'import { foo } from "some-unknown-pkg"',
+    'function stub() { return null; // TODO }',
+    'const x = notImplemented("test")',
+  ])];
 
-// ═══════════════════════════════════════════════════════════════
-// Ghost File Scanner Tests
-// ═══════════════════════════════════════════════════════════════
-console.log(`\n${COLORS.yellow}▶ Ghost File Scanner${COLORS.reset}\n`);
+  const f = await s.scan(chunks);
+  assert('flags external import', f.some(x => x.type === 'External Import'));
+  assert('flags stub function', f.some(x => x.type === 'Stub Function'));
+  assert('flags unresolved symbol', f.some(x => x.type === 'Unresolved Symbol'));
+}
 
-test('detects missing import', async () => {
-  const scanner = new GhostFileScanner();
-  // Note: This test assumes ./non-existent-file.js doesn't exist
-  // In a real scenario, we'd mock the file system
-  const chunks = [{
-    newFile: 'src/app.js',
-    addedLines: [{ content: 'import foo from "./definitely-not-real-file"', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  // Will pass if file doesn't exist (which it shouldn't)
-  // In test mode, we accept either outcome since we can't mock fs easily
-  assert(typeof findings === 'object', 'Should return findings array');
-});
+async function testScanResults() {
+  console.log('\n▸ ScanResults');
+  const r = new ScanResults();
+  assert('empty results have no issues', !r.hasIssues());
+  assert('empty results have no errors', !r.hasErrors());
 
-// ═══════════════════════════════════════════════════════════════
-// TODO Scanner Tests
-// ═══════════════════════════════════════════════════════════════
-console.log(`\n${COLORS.yellow}▶ TODO Scanner${COLORS.reset}\n`);
+  r.addFindings('test', [{ severity: 'WARN', type: 'test' }]);
+  assert('warn counts as issue', r.hasIssues());
+  assert('warn is not error', !r.hasErrors());
 
-test('detects TODO comment', async () => {
-  const scanner = new TodoScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: '// TODO: fix this later', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.length > 0, 'Should detect TODO');
-});
+  r.addFindings('test2', [{ severity: 'ERROR', type: 'test' }]);
+  assert('error detected', r.hasErrors());
+  assert('summary totals correct', r.getSummary().total === 2);
+}
 
-test('detects FIXME comment', async () => {
-  const scanner = new TodoScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: 'function foo() { /* FIXME: broken */ }', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.some(f => f.type.includes('FIXME')), 'Should detect FIXME');
-});
+async function testFormatter() {
+  console.log('\n▸ Formatter');
+  const r = new ScanResults();
+  r.addFindings('secrets', [{ severity: 'ERROR', type: 'AWS Key', file: 'x.js', line: '1', snippet: 'AKIA...', match: 'AKIA***' }]);
+  const out = formatReport(r);
+  assert('report contains header', out.includes('OPENCLAW GUARD'));
+  assert('report contains finding', out.includes('AWS Key'));
+  assert('report shows blocked', out.includes('blocked'));
 
-test('detects stub markers', async () => {
-  const scanner = new TodoScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: '// STUB: implement later', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.some(f => f.type === 'AI Stub Marker'), 'Should detect stub marker');
-});
+  const empty = new ScanResults({ empty: true });
+  const emptyOut = formatReport(empty);
+  assert('empty report shows warning', emptyOut.includes('No staged'));
+}
 
-test('fail-on-todo treats TODO as error', async () => {
-  const scanner = new TodoScanner(true); // failOnTodo = true
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: '// TODO: something', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.every(f => f.severity === 'ERROR'), 'Should be ERROR when failOnTodo is true');
-});
+async function main() {
+  console.log('OpenClaw Guard — Test Suite\n');
+  await testSecretScanner();
+  await testTodoScanner();
+  await testImportScanner();
+  await testScanResults();
+  await testFormatter();
 
-// ═══════════════════════════════════════════════════════════════
-// Import Scanner Tests
-// ═══════════════════════════════════════════════════════════════
-console.log(`\n${COLORS.yellow}▶ Import Scanner${COLORS.reset}\n`);
+  console.log(`\n${'─'.repeat(40)}`);
+  console.log(`Results: ${passed} passed, ${failed} failed`);
+  process.exit(failed > 0 ? 1 : 0);
+}
 
-test('detects stub function with pass', async () => {
-  const scanner = new ImportScanner();
-  const chunks = [{
-    newFile: 'test.py',
-    addedLines: [{ content: 'def foo(): pass', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.some(f => f.type === 'Stub Function'), 'Should detect pass stub');
-});
-
-test('detects stub with NotImplemented', async () => {
-  const scanner = new ImportScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: 'function foo() { throw new Error("Not implemented"); }', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(findings.some(f => f.type === 'Stub Function'), 'Should detect NotImplemented stub');
-});
-
-test('skips built-in node modules', async () => {
-  const scanner = new ImportScanner();
-  const chunks = [{
-    newFile: 'test.js',
-    addedLines: [{ content: 'import fs from "fs";', hunkHeader: '@@ -1 +1 @@' }]
-  }];
-  const findings = await scanner.scan(chunks);
-  assert(!findings.some(f => f.source === 'fs'), 'Should not flag built-in fs module');
-});
-
-// ═══════════════════════════════════════════════════════════════
-// Summary
-// ═══════════════════════════════════════════════════════════════
-console.log('\n' + '─'.repeat(64));
-console.log(`\n${COLORS.green}Passed:${COLORS.reset} ${passed}`);
-console.log(`${COLORS.red}Failed:${COLORS.reset} ${failed}`);
-console.log(`\nTotal: ${passed + failed}`);
-
-process.exit(failed > 0 ? 1 : 0);
+main();

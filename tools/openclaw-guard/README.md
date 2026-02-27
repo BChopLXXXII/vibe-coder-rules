@@ -215,12 +215,6 @@ This tool catches the obvious stuff before it hits your repo.
 
 ---
 
-## Contributing
-
-This is a personal tool. Issues welcome, but PRs may not be accepted.
-
----
-
 ## License
 
 MIT. Do whatever you want with these.
@@ -235,4 +229,4 @@ Ship it. 🚀
 
 ---
 
-If this helped, [star the repo](https://github.com/BChopLXXXII/openclaw-guard) — it helps others find it.
+If this helped, [star the repo](https://github.com/BChopLXXXII/vibe-coder-rules) — it helps others find it.
