@@ -216,29 +216,33 @@ More: `docs/openclaw-guard.md`
 
 ---
 
-## 🌅 claw-morning-brief — Overnight Session Summary
+## 📡 claw-rules-broadcast — Keep AGENTS.md in Sync Everywhere
 
-Generate a quick morning report of what happened while your agents ran.
+Sync one source (`AGENTS.md`) into tool-specific files without risky overwrite behavior.
 
 ```bash
-cd tools/claw-morning-brief
+cd tools/claw-rules-broadcast
 npm install
 npm run dev
 ```
 
-Then open `http://localhost:3000` and click **Generate Brief**.
+Then open `http://localhost:3000`.
 
-What it summarizes:
-- memory log activity
-- git commits + diff stats
-- changed files
-- local session metadata
-- suggested first action
+Targets supported:
+- `CLAUDE.md` (full copy + generated header)
+- `.cursorrules` (headers stripped + generated header)
+- `codex.yaml` / `openai.yaml` (`instructions:` block update if file exists)
 
-Routes:
-- `POST /api/generate`
-- `GET /api/briefs`
-- `GET /api/briefs/[date]`
+Safety behavior:
+- manual-edited targets are flagged as `conflict ❌` and never auto-overwritten
+- previously generated but outdated targets are flagged `stale ⚠️`
+- clean targets show `in-sync ✅`
+
+API:
+- `GET /api/status`
+- `POST /api/sync`
+- `GET /api/config`
+- `POST /api/config`
 
 ---
 

@@ -1,0 +1,15 @@
+{
+  "sourcePath": "/home/openclaw/.openclaw/workspace/AGENTS.md",
+  "targets": [
+    {
+      "kind": "claude",
+      "path": "/home/openclaw/.openclaw/workspace/CLAUDE.md",
+      "enabled": true
+    },
+    {
+      "kind": "cursor",
+      "path": "/home/openclaw/.openclaw/workspace/.cursorrules",
+      "enabled": true
+    }
+  ]
+}
