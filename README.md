@@ -216,6 +216,32 @@ More: `docs/openclaw-guard.md`
 
 ---
 
+## 🌅 claw-morning-brief — Overnight Session Summary
+
+Generate a quick morning report of what happened while your agents ran.
+
+```bash
+cd tools/claw-morning-brief
+npm install
+npm run dev
+```
+
+Then open `http://localhost:3000` and click **Generate Brief**.
+
+What it summarizes:
+- memory log activity
+- git commits + diff stats
+- changed files
+- local session metadata
+- suggested first action
+
+Routes:
+- `POST /api/generate`
+- `GET /api/briefs`
+- `GET /api/briefs/[date]`
+
+---
+
 ## Quick Start
 
 **For Claude Code / OpenClaw:**
