@@ -1,0 +1,30 @@
+{
+  "name": "agent-spend-cap",
+  "version": "0.1.0",
+  "description": "Hard budget caps + live burn-rate alerts for coding-agent sessions",
+  "type": "module",
+  "bin": {
+    "agent-spend-cap": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "check": "tsc --noEmit"
+  },
+  "keywords": [
+    "codex",
+    "cursor",
+    "claude-code",
+    "budget",
+    "cli"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
