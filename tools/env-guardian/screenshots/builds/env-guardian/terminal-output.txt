@@ -1,0 +1,41 @@
+# env-guardian Terminal Output
+
+## 1. env-guardian init -t supabase (creating schema)
+
+$ cd my-project
+$ env-guardian init -t supabase
+✅ Created .env.schema.json from "supabase" template
+
+## 2. env-guardian check (all vars present)
+
+$ env-guardian check
+🔍 Env Guardian Check
+
+Schema: .env.schema.json
+Env: .env
+
+✅ Present (3):
+   NEXT_PUBLIC_SUPABASE_URL
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   SUPABASE_SERVICE_ROLE_KEY
+
+✅ All required environment variables are present!
+🚀 Ready to deploy.
+
+## 3. env-guardian check (missing vars)
+
+$ env-guardian check
+🔍 Env Guardian Check
+
+Schema: .env.schema.json
+Env: .env
+
+✅ Present (1):
+   NEXT_PUBLIC_SUPABASE_URL
+
+❌ Missing Required (1):
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+      → Supabase anon key
+
+⚠️  Deploy will likely fail. Add these vars before deploying.
+
