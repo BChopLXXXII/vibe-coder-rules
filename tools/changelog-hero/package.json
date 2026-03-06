@@ -1,0 +1,22 @@
+{
+  "name": "changelog-hero",
+  "version": "1.0.0",
+  "description": "Auto-generate CHANGELOG.md from git commits. Ship fast, keep users informed, zero effort.",
+  "main": "dist/index.js",
+  "bin": {
+    "changelog-hero": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "simple-git": "^3.21.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}
